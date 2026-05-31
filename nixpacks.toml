@@ -4,6 +4,3 @@ nixPkgs = [
   "chromium",
   "chromedriver"
 ]
-
-[variables]
-PYTHONUNBUFFERED = "1"

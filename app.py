@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
+import shutil
 import unicodedata
 
 app = Flask(__name__)
@@ -86,11 +87,33 @@ def searching():
   driver = None
 
   try:
-    service = Service("/usr/bin/chromedriver")
-    driver = webdriver.Chrome(
-        service=service,
-        options=options
+    chrome_path = (
+        shutil.which("chromium")
+        or shutil.which("chromium-browser")
+        or shutil.which("google-chrome")
     )
+
+    driver_path = (
+        shutil.which("chromedriver")
+        or shutil.which("chromium-driver")
+    )
+
+    print("Chrome path:", chrome_path)
+    print("Driver path:", driver_path)
+
+    if chrome_path:
+      options.binary_location = chrome_path
+
+    if driver_path:
+      service = Service(driver_path)
+      driver = webdriver.Chrome(
+          service=service,
+          options=options
+      )
+    else:
+      driver = webdriver.Chrome(
+          options=options
+      )
 
     driver.get("https://www.tokyo-marui.co.jp/")
 
