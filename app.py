@@ -28,7 +28,7 @@ options.add_argument("--window-size=1920,1080")
 # HTML
 # ----------------------------
 def render_form():
-    return """
+  return """
     <div style="text-align:center;">
         <h2>東京マルイ検索システム</h2>
 
@@ -55,17 +55,17 @@ def render_form():
 # 全角文字幅
 # ----------------------------
 def get_east_asian_width(text):
-    total_width = 0
+  total_width = 0
 
-    for char in text:
-        status = unicodedata.east_asian_width(char)
+  for char in text:
+    status = unicodedata.east_asian_width(char)
 
-        if status in ("W", "F", "A"):
-            total_width += 1.4
-        else:
-            total_width += 1
+    if status in ("W", "F", "A"):
+      total_width += 1.4
+    else:
+      total_width += 1
 
-    return int(total_width + 0.5)
+  return int(total_width + 0.5)
 
 
 # ----------------------------
@@ -74,27 +74,27 @@ def get_east_asian_width(text):
 @app.route("/", methods=["GET", "POST"])
 def searching():
 
-    if request.method == "GET":
-        return render_form()
+  if request.method == "GET":
+    return render_form()
 
-    search_word = request.form.get("searchWord", "").strip()
-    sort_option = request.form.get("sort", "1")
+  search_word = request.form.get("searchWord", "").strip()
+  sort_option = request.form.get("sort", "1")
 
-    if not search_word:
-        return render_form() + "<p>検索ワードを入力してください</p>"
+  if not search_word:
+    return render_form() + "<p>検索ワードを入力してください</p>"
 
-    driver = None
+  driver = None
 
-    try:
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
-            options=options
-        )
+  try:
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options
+    )
 
-        driver.get("https://www.tokyo-marui.co.jp/")
+    driver.get("https://www.tokyo-marui.co.jp/")
 
-        # 検索ワード入力
-        script = """
+    # 検索ワード入力
+    script = """
         var keyword = arguments[0];
         var targets = document.getElementsByName('productname');
 
@@ -110,103 +110,103 @@ def searching():
         }
         """
 
-        driver.execute_script(script, search_word)
+    driver.execute_script(script, search_word)
 
-        # 並び替え
-        if sort_option in ["1", "2", "3"]:
-            wait = WebDriverWait(driver, 10)
+    # 並び替え
+    if sort_option in ["1", "2", "3"]:
+      wait = WebDriverWait(driver, 10)
 
-            select_element = wait.until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, "dl dd select")
-                )
-            )
+      select_element = wait.until(
+          EC.presence_of_element_located(
+              (By.CSS_SELECTOR, "dl dd select")
+          )
+      )
 
-            Select(select_element).select_by_value(sort_option)
+      Select(select_element).select_by_value(sort_option)
 
-        # 商品待機
-        wait = WebDriverWait(driver, 10)
+    # 商品待機
+    wait = WebDriverWait(driver, 10)
 
-        wait.until(
-            EC.presence_of_all_elements_located(
-                (By.CSS_SELECTOR,
-                 "li.sw-Card_Products-Type1_Item")
-            )
+    wait.until(
+        EC.presence_of_all_elements_located(
+            (By.CSS_SELECTOR,
+             "li.sw-Card_Products-Type1_Item")
         )
+    )
 
-        items = driver.find_elements(
+    items = driver.find_elements(
+        By.CSS_SELECTOR,
+        "li.sw-Card_Products-Type1_Item"
+    )
+
+    products_data = []
+    len_max = 0
+
+    # 最大文字幅
+    for item in items:
+      try:
+        name = item.find_element(
             By.CSS_SELECTOR,
-            "li.sw-Card_Products-Type1_Item"
+            "h3 a"
+        ).text.strip()
+
+        length = get_east_asian_width(name)
+
+        len_max = max(len_max, length)
+
+      except:
+        continue
+
+    count = 1
+
+    for item in items:
+      try:
+        sells = item.find_element(
+            By.CSS_SELECTOR,
+            "span, .category, .type"
+        ).text.strip()
+
+        name = item.find_element(
+            By.CSS_SELECTOR,
+            "h3 a"
+        ).text.strip()
+
+        price = item.find_element(
+            By.CSS_SELECTOR,
+            "div p strong"
+        ).text.strip()
+
+        url = item.find_element(
+            By.CSS_SELECTOR,
+            "a"
+        ).get_attribute("href")
+
+        category = url.split("/")[-3]
+
+        category_map = {
+            "electric": "電動ガン",
+            "gas": "ガスガン",
+            "aircocking": "エアコキ"
+        }
+
+        category = category_map.get(
+            category,
+            "その他"
         )
 
-        products_data = []
-        len_max = 0
+        if search_word.lower() in name.lower():
 
-        # 最大文字幅
-        for item in items:
-            try:
-                name = item.find_element(
-                    By.CSS_SELECTOR,
-                    "h3 a"
-                ).text.strip()
+          padding = (
+              "⠀" *
+              (
+                  len_max
+                  - get_east_asian_width(name)
+                  + 2
+              )
+          )
 
-                length = get_east_asian_width(name)
-
-                len_max = max(len_max, length)
-
-            except:
-                continue
-
-        count = 1
-
-        for item in items:
-            try:
-                sells = item.find_element(
-                    By.CSS_SELECTOR,
-                    "span, .category, .type"
-                ).text.strip()
-
-                name = item.find_element(
-                    By.CSS_SELECTOR,
-                    "h3 a"
-                ).text.strip()
-
-                price = item.find_element(
-                    By.CSS_SELECTOR,
-                    "div p strong"
-                ).text.strip()
-
-                url = item.find_element(
-                    By.CSS_SELECTOR,
-                    "a"
-                ).get_attribute("href")
-
-                category = url.split("/")[-3]
-
-                category_map = {
-                    "electric": "電動ガン",
-                    "gas": "ガスガン",
-                    "aircocking": "エアコキ"
-                }
-
-                category = category_map.get(
-                    category,
-                    "その他"
-                )
-
-                if search_word.lower() in name.lower():
-
-                    padding = (
-                        "⠀" *
-                        (
-                            len_max
-                            - get_east_asian_width(name)
-                            + 2
-                        )
-                    )
-
-                    products_data.append(
-                        f"""
+          products_data.append(
+              f"""
                         {count}.
                         【{sells}】
                         [{category}]
@@ -218,20 +218,20 @@ def searching():
                         製品リンク
                         </a>
                         """
-                    )
+          )
 
-                    count += 1
+          count += 1
 
-            except Exception as e:
-                print(e)
+      except Exception as e:
+        print(e)
 
-        result_text = (
-            "<br>".join(products_data)
-            if products_data
-            else "該当なし"
-        )
+    result_text = (
+        "<br>".join(products_data)
+        if products_data
+        else "該当なし"
+    )
 
-        return f"""
+    return f"""
         {render_form()}
         <hr>
 
@@ -241,18 +241,17 @@ def searching():
         </div>
         """
 
-    except Exception as e:
-        return f"""
+  except Exception as e:
+    return f"""
         {render_form()}
         <p>エラーが発生しました</p>
         <pre>{str(e)}</pre>
         """
 
-    finally:
-        if driver:
-            driver.quit()
+  finally:
+    if driver:
+      driver.quit()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-```
+  app.run(host="0.0.0.0", port=5000)
