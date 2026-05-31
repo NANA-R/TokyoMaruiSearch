@@ -1,25 +1,6 @@
-requirements.txt
-
 
 flask==3.0.3
 selenium==4.31.0
 webdriver-manager==4.0.2
 gunicorn==23.0.0
-
-
-render.yaml
-
-
-services:
-  - type: web
-    name: tokyo-marui-search
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-
-
-Procfile
-
-
-web: gunicorn app:app
 
