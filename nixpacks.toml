@@ -1,0 +1,9 @@
+[phases.setup]
+nixPkgs = [
+  "python311",
+  "chromium",
+  "chromedriver"
+]
+
+[variables]
+PYTHONUNBUFFERED = "1"
